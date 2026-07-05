@@ -25,6 +25,9 @@
 *.pem
 .idea/
 
+# local library cache
+/data/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
