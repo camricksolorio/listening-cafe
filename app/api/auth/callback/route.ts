@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { exchangeCodeForTokens } from "@/lib/spotify";
+import { APP_ORIGIN, exchangeCodeForTokens } from "@/lib/spotify";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
   const session = await getSession();
 
   if (error) {
-    return NextResponse.redirect(new URL(`/?error=${error}`, request.url));
+    return NextResponse.redirect(new URL(`/?error=${error}`, APP_ORIGIN));
   }
 
   if (!code || !state || state !== session.state || !session.codeVerifier) {
-    return NextResponse.redirect(new URL("/?error=invalid_state", request.url));
+    return NextResponse.redirect(new URL("/?error=invalid_state", APP_ORIGIN));
   }
 
   const tokens = await exchangeCodeForTokens(code, session.codeVerifier);
@@ -27,5 +27,5 @@ export async function GET(request: NextRequest) {
   session.state = undefined;
   await session.save();
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(new URL("/", APP_ORIGIN));
 }

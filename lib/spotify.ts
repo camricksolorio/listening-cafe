@@ -1,6 +1,12 @@
 const SPOTIFY_AUTHORIZE_URL = "https://accounts.spotify.com/authorize";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 
+// Derived from the registered redirect URI rather than the incoming request —
+// Next's dev server can report a request's URL as "localhost" even when it
+// was actually reached via 127.0.0.1, which would send post-login redirects
+// to an origin that doesn't have the session cookie.
+export const APP_ORIGIN = new URL(process.env.SPOTIFY_REDIRECT_URI!).origin;
+
 export const SPOTIFY_SCOPES = [
   "streaming",
   "user-read-email",
@@ -73,4 +79,75 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
   }
 
   return res.json();
+}
+
+export interface PlaylistSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  trackCount: number;
+}
+
+export interface AlbumSummary {
+  id: string;
+  name: string;
+  artist: string;
+  imageUrl: string | null;
+}
+
+async function fetchAllPaginated(accessToken: string, initialUrl: string): Promise<unknown[]> {
+  const items: unknown[] = [];
+  let url: string | null = initialUrl;
+
+  while (url) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) {
+      throw new Error(`Spotify request failed: ${res.status} ${await res.text()}`);
+    }
+    const data: { items: unknown[]; next: string | null } = await res.json();
+    items.push(...data.items);
+    url = data.next;
+  }
+
+  return items;
+}
+
+function normalizePlaylist(raw: any): PlaylistSummary {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description || null,
+    imageUrl: raw.images?.[0]?.url ?? null,
+    trackCount: raw.tracks?.total ?? 0,
+  };
+}
+
+function normalizeAlbum(raw: any): AlbumSummary {
+  const album = raw.album ?? raw; // legacy /me/albums wraps in { added_at, album }
+  return {
+    id: album.id,
+    name: album.name,
+    artist: album.artists?.map((a: { name: string }) => a.name).join(", ") ?? "Unknown Artist",
+    imageUrl: album.images?.[0]?.url ?? null,
+  };
+}
+
+export async function fetchAllPlaylists(accessToken: string): Promise<PlaylistSummary[]> {
+  const raw = await fetchAllPaginated(accessToken, "https://api.spotify.com/v1/me/playlists?limit=50");
+  return raw.filter(Boolean).map(normalizePlaylist);
+}
+
+export async function fetchAllSavedAlbums(accessToken: string): Promise<AlbumSummary[]> {
+  try {
+    const raw = await fetchAllPaginated(
+      accessToken,
+      "https://api.spotify.com/v1/me/library?type=album&limit=50"
+    );
+    return raw.filter(Boolean).map(normalizeAlbum);
+  } catch {
+    // Fall back to the legacy endpoint in case /me/library isn't live yet on this account/app.
+    const raw = await fetchAllPaginated(accessToken, "https://api.spotify.com/v1/me/albums?limit=50");
+    return raw.filter(Boolean).map(normalizeAlbum);
+  }
 }
