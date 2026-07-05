@@ -13,7 +13,7 @@ export function VinylSleeve({ label, sublabel, imageUrl, onClick, variant }: Vin
     <button
       type="button"
       onClick={onClick}
-      className={`group relative aspect-square w-full overflow-hidden rounded-sm shadow-md transition-transform duration-200 hover:z-10 hover:-translate-y-2 hover:shadow-2xl ${
+      className={`group relative h-full w-full overflow-hidden rounded-sm shadow-md transition-transform duration-200 hover:z-10 hover:-translate-y-2 hover:shadow-2xl ${
         variant === "playlist" ? "border-l-4 border-amber-500" : "border border-zinc-700"
       }`}
     >

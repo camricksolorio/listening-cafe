@@ -4,7 +4,7 @@ import { groupItems, type LibraryItem } from "@/lib/library-groups";
 import { readLibraryCache } from "@/lib/library-cache";
 
 const PLAYLIST_SLOTS = 6; // 3 in shelf-left + 3 in shelf-right
-const ALBUM_SLOTS = 6; // shelf-top band
+const ALBUM_SLOTS = 4; // shelf-top band
 
 export default async function Home() {
   const cache = await readLibraryCache();
