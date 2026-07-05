@@ -119,7 +119,7 @@ function normalizePlaylist(raw: any): PlaylistSummary {
     name: raw.name,
     description: raw.description || null,
     imageUrl: raw.images?.[0]?.url ?? null,
-    trackCount: raw.tracks?.total ?? 0,
+    trackCount: raw.items?.total ?? raw.tracks?.total ?? 0,
   };
 }
 
